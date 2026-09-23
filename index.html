@@ -119,6 +119,18 @@ tr:last-child td{border-bottom:none}
 .g2x{gap:8px}.mb2{margin-bottom:8px}.mb3{margin-bottom:12px}.mb4{margin-bottom:16px}
 .mt2{margin-top:8px}.mt3{margin-top:12px}.tsm{font-size:12px}.tm{color:var(--muted)}
 .fw{font-weight:700}.wrap{flex-wrap:wrap}
+/* FINANZAS */
+.fin-cat{background:var(--card);border-radius:var(--r);border:1px solid var(--border);margin-bottom:16px;overflow:hidden}
+.fin-cat-h{padding:12px 18px;display:flex;justify-content:space-between;align-items:center;color:#fff;font-weight:700;font-size:13px}
+.fin-cat-b{padding:14px 18px}
+.goal-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.goal-row:last-child{border-bottom:none}
+.goal-info{flex:1;min-width:0}
+.goal-name{font-weight:700;font-size:13px}
+.goal-nums{font-size:11px;color:var(--muted);margin-top:2px}
+.goal-bar-wrap{background:var(--bg);border-radius:6px;height:8px;margin-top:6px;overflow:hidden}
+.goal-bar{height:100%;border-radius:6px;transition:width .4s}
+.goal-actions{display:flex;gap:4px;flex-shrink:0}
 @media(max-width:700px){#sidebar{display:none}#main{margin-left:0}.g4{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}}
 </style>
 </head>
@@ -256,6 +268,7 @@ tr:last-child td{border-bottom:none}
       <div class="ni" data-page="ventas" onclick="go('ventas')"><span class="ni-icon">💰</span> Ventas</div>
       <div class="ni" data-page="inventario" onclick="go('inventario')"><span class="ni-icon">📦</span> Inventario</div>
       <div class="ni" data-page="empleados" onclick="go('empleados')"><span class="ni-icon">👥</span> Empleados</div>
+      <div class="ni" data-page="finanzas" onclick="go('finanzas')"><span class="ni-icon">💹</span> Finanzas</div>
       <div class="ni" data-page="reportes" onclick="go('reportes')"><span class="ni-icon">📊</span> Reportes</div>
       <div class="ni" data-page="config" onclick="go('config')"><span class="ni-icon">⚙️</span> Configuración</div>
     </div>
@@ -356,6 +369,25 @@ tr:last-child td{border-bottom:none}
         <div class="card"><div class="ct mb3">Desempeño del Mes</div><div class="tw"><table><thead><tr><th>Empleado</th><th>Puesto</th><th>Ventas del Mes</th><th>Citas Completadas</th></tr></thead><tbody id="tDesempeno"></tbody></table></div></div>
       </div>
 
+      <div id="page-finanzas" class="page">
+        <div class="sh">
+          <div><div class="sh-t">💹 Finanzas</div><div class="sh-s">Metas de dinero por categoría y su cumplimiento</div></div>
+          <div class="flex g2x ic">
+            <select id="finMes" class="fc" style="width:150px" onchange="renderFinanzas()"></select>
+            <button class="btn btn-p" onclick="abrirMeta()">+ Nueva Meta</button>
+          </div>
+        </div>
+
+        <div class="g4 mb4">
+          <div class="stat"><div class="si" style="background:rgba(40,167,69,.1)">💰</div><div><div class="sl">Ingresos (Real)</div><div class="sv" id="finIngresosReal">—</div><div class="ss" id="finIngresosMeta">meta: —</div></div></div>
+          <div class="stat"><div class="si" style="background:rgba(220,53,69,.1)">💸</div><div><div class="sl">Gastos + Facturas (Real)</div><div class="sv" id="finGastosReal">—</div><div class="ss" id="finGastosMeta">meta: —</div></div></div>
+          <div class="stat"><div class="si" style="background:rgba(13,110,253,.1)">⚖️</div><div><div class="sl">Balance Real</div><div class="sv" id="finBalance">—</div><div class="ss">ingresos - gastos</div></div></div>
+          <div class="stat"><div class="si" style="background:rgba(255,193,7,.1)">🎯</div><div><div class="sl">Metas Cumplidas</div><div class="sv" id="finCumplidas">0/0</div><div class="ss">este mes</div></div></div>
+        </div>
+
+        <div id="finCategorias"></div>
+      </div>
+
       <div id="page-reportes" class="page">
         <div class="sh"><div><div class="sh-t">📊 Reportes</div><div class="sh-s">Análisis de tu negocio</div></div><button class="btn btn-g" onclick="copiarReporte()">📋 Copiar</button></div>
         <div class="card mb4"><div class="flex ic g2x wrap">
@@ -440,6 +472,25 @@ tr:last-child td{border-bottom:none}
   <input type="hidden" id="pvEditId">
 </div><div class="mf"><button class="btn btn-g" onclick="closeModal('mProv')">Cancelar</button><button class="btn btn-p" onclick="guardarProveedor()">💾 Guardar</button></div></div></div>
 
+<div class="modal-overlay" id="mMeta"><div class="modal"><div class="mh"><div class="mt" id="mMetaTitle">🎯 Nueva Meta</div><button class="mc" onclick="closeModal('mMeta')">✕</button></div><div class="mb">
+  <div class="fg"><label>Categoría *</label><select id="metaCategoria" class="fc">
+    <option value="Ingresos">💰 Ingresos</option>
+    <option value="Facturas">🧾 Facturas</option>
+    <option value="Gastos">💸 Gastos</option>
+    <option value="Ahorros">🏦 Ahorros</option>
+    <option value="Creditos">💳 Créditos</option>
+    <option value="Inversiones">📈 Inversiones</option>
+  </select></div>
+  <div class="fg"><label>Nombre de la meta *</label><input type="text" id="metaNombre" class="fc" placeholder="Ej: Citas de Pestañas, Renta del local, Fondo de emergencia..."></div>
+  <div class="g2">
+    <div class="fg"><label>Monto objetivo *</label><input type="number" id="metaObjetivo" class="fc" min="0" step="0.01" placeholder="0.00"></div>
+    <div class="fg"><label>Monto real (opcional)</label><input type="number" id="metaReal" class="fc" min="0" step="0.01" placeholder="0.00"></div>
+  </div>
+  <div class="fg"><label>Mes</label><input type="month" id="metaMes" class="fc"></div>
+  <div class="fg"><label>Notas (opcional)</label><input type="text" id="metaNotas" class="fc" placeholder="Observaciones..."></div>
+  <input type="hidden" id="metaEditId">
+</div><div class="mf"><button class="btn btn-g" onclick="closeModal('mMeta')">Cancelar</button><button class="btn btn-p" onclick="guardarMeta()">💾 Guardar</button></div></div></div>
+
 <div class="modal-overlay" id="mConfirm"><div class="modal" style="max-width:380px"><div class="mh"><div class="mt" id="confirmTitle">⚠️ Confirmar</div><button class="mc" onclick="closeModal('mConfirm')">✕</button></div><div class="mb"><p id="confirmMsg" style="font-size:14px;line-height:1.6"></p></div><div class="mf"><button class="btn btn-g" onclick="closeModal('mConfirm')">Cancelar</button><button class="btn btn-d" id="confirmBtn">Confirmar</button></div></div></div>
 
 <div class="modal-overlay" id="mVentaOk"><div class="modal" style="max-width:440px"><div class="mh"><div class="mt">✅ Venta Registrada</div><button class="mc" onclick="closeModal('mVentaOk')">✕</button></div><div class="mb" id="mVentaOkBody"></div><div class="mf"><button class="btn btn-p" onclick="closeModal('mVentaOk')">Aceptar</button></div></div></div>
@@ -450,15 +501,15 @@ tr:last-child td{border-bottom:none}
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let CURRENT_USER = null;
 let CFG = { nombre:'Mi Spa', tipo:'Spa', logo:'🧖‍♀️', color:'#D63384', moneda:'Q', zona:'America/Guatemala', fecha:'DD/MM/AAAA', stockMin:5, onboarded:false };
-let DATA = { citas:[], ventas:[], empleados:[], productos:[], proveedores:[] };
+let DATA = { citas:[], ventas:[], empleados:[], productos:[], proveedores:[], metas:[] };
 let wizStep=0; const WIZ_TOTAL=6; let wizEmps=[],wizServs=[],wizCitas=[]; let wizColor='#D63384';
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).substr(2,5);}
 function today(){return new Date().toISOString().split('T')[0];}
 function fmt(n){return CFG.moneda+parseFloat(n||0).toFixed(2);}
-function fmtDate(s){if(!s)return'';const[y,m,d]=s.split('-');if(CFG.fecha==='MM/DD/AAAA')return `${m}/${d}/${y}`;if(CFG.fecha==='AAAA-MM-DD')return s;return `${d}/${m}/${y}`;}
+function fmtDate(s){if(!s)return'';const[y,m,d]=s.split('-');if(CFG.fecha==='MM/DD/AAAA')return \`\${m}/\${d}/\${y}\`;if(CFG.fecha==='AAAA-MM-DD')return s;return \`\${d}/\${m}/\${y}\`;}
 function timeToMin(t){if(!t)return 0;const[h,m]=t.split(':').map(Number);return h*60+m;}
-function toast(msg,type='ok'){const c=document.getElementById('toasts');const el=document.createElement('div');el.className=`toast t-${type}`;el.textContent=msg;c.appendChild(el);setTimeout(()=>{if(el.parentNode)el.remove();},3500);}
+function toast(msg,type='ok'){const c=document.getElementById('toasts');const el=document.createElement('div');el.className=\`toast t-\${type}\`;el.textContent=msg;c.appendChild(el);setTimeout(()=>{if(el.parentNode)el.remove();},3500);}
 function openModal(id){const m=document.getElementById(id);if(m){m.style.display='flex';requestAnimationFrame(()=>m.classList.add('open'));}}
 function closeModal(id){const m=document.getElementById(id);if(m){m.classList.remove('open');setTimeout(()=>{m.style.display='none';},200);}}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);}));
@@ -474,7 +525,7 @@ function switchAuthTab(tab){
   document.getElementById('signupForm').classList.toggle('hidden',tab!=='signup');
   document.getElementById('authMsg').innerHTML='';
 }
-function showAuthMsg(msg,ok){document.getElementById('authMsg').innerHTML=`<div class="${ok?'auth-ok':'auth-err'}">${msg}</div>`;}
+function showAuthMsg(msg,ok){document.getElementById('authMsg').innerHTML=\`<div class="\${ok?'auth-ok':'auth-err'}">\${msg}</div>\`;}
 async function doLogin(){
   const email=document.getElementById('loginEmail').value.trim();
   const pass=document.getElementById('loginPass').value;
@@ -531,18 +582,20 @@ async function saveCFG(){
 // ═══════════ DATA (Supabase CRUD) ═══════════
 async function loadAllData(){
   const uidField='user_id';
-  const [c,v,e,p,pr]=await Promise.all([
+  const [c,v,e,p,pr,mf]=await Promise.all([
     sb.from('citas').select('*').eq(uidField,CURRENT_USER.id),
     sb.from('ventas').select('*').eq(uidField,CURRENT_USER.id),
     sb.from('empleados').select('*').eq(uidField,CURRENT_USER.id),
     sb.from('productos').select('*').eq(uidField,CURRENT_USER.id),
     sb.from('proveedores').select('*').eq(uidField,CURRENT_USER.id),
+    sb.from('metas_financieras').select('*').eq(uidField,CURRENT_USER.id),
   ]);
   DATA.citas=(c.data||[]).map(x=>({id:x.id,cliente:x.cliente,telefono:x.telefono,servicio:x.servicio,empleado:x.empleado,fecha:x.fecha,hora:x.hora?.slice(0,5)||x.hora,duracion:x.duracion,estado:x.estado,notas:x.notas}));
   DATA.ventas=(v.data||[]).map(x=>({id:x.id,fecha:x.fecha,hora:x.hora,cliente:x.cliente,empleado:x.empleado,descripcion:x.descripcion,subtotal:x.subtotal,descuento:x.descuento,total:x.total,metodoPago:x.metodo_pago,notas:x.notas}));
   DATA.empleados=(e.data||[]).map(x=>({id:x.id,nombre:x.nombre,puesto:x.puesto,tel:x.tel,fechaIngreso:x.fecha_ingreso,estado:x.estado,ventasGeneradas:x.ventas_generadas}));
   DATA.productos=(p.data||[]).map(x=>({id:x.id,nombre:x.nombre,categoria:x.categoria,precio:x.precio,costo:x.costo,stock:x.stock,stockMin:x.stock_min,proveedor:x.proveedor,unidad:x.unidad}));
   DATA.proveedores=(pr.data||[]).map(x=>({id:x.id,nombre:x.nombre,contacto:x.contacto,productos:x.productos,entrega:x.entrega}));
+  DATA.metas=(mf.data||[]).map(x=>({id:x.id,categoria:x.categoria,nombre:x.nombre,objetivo:x.monto_objetivo,real:x.monto_real,mes:x.mes,notas:x.notas}));
 }
 
 // ═══════════ APPLY CONFIG / NAV ═══════════
@@ -552,9 +605,9 @@ function applyConfig(){
   document.getElementById('sbLogo').textContent=CFG.logo;
   document.getElementById('sbName').textContent=CFG.nombre;
   document.getElementById('sbType').textContent=CFG.tipo+' · ⚙️ Configurar';
-  document.getElementById('dashWelcome').textContent=`¡Bienvenido a ${CFG.nombre}! 👋`;
+  document.getElementById('dashWelcome').textContent=\`¡Bienvenido a \${CFG.nombre}! 👋\`;
   document.getElementById('vMonedaLbl').textContent=CFG.moneda;
-  document.title=`${CFG.logo} ${CFG.nombre}`;
+  document.title=\`\${CFG.logo} \${CFG.nombre}\`;
 }
 function shadeColor(color,pct){try{let R=parseInt(color.substring(1,3),16),G=parseInt(color.substring(3,5),16),B=parseInt(color.substring(5,7),16);R=Math.min(255,Math.max(0,R+pct));G=Math.min(255,Math.max(0,G+pct));B=Math.min(255,Math.max(0,B+pct));return'#'+((1<<24)+(R<<16)+(G<<8)+B).toString(16).slice(1);}catch(e){return color;}}
 
@@ -562,36 +615,37 @@ function go(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+page)?.classList.add('active');
-  document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
-  const titles={dashboard:'🏠 Dashboard',citas:'📅 Citas',ventas:'💰 Ventas',inventario:'📦 Inventario',empleados:'👥 Empleados',reportes:'📊 Reportes',config:'⚙️ Configuración'};
+  document.querySelector(\`[data-page="\${page}"]\`)?.classList.add('active');
+  const titles={dashboard:'🏠 Dashboard',citas:'📅 Citas',ventas:'💰 Ventas',inventario:'📦 Inventario',empleados:'👥 Empleados',finanzas:'💹 Finanzas',reportes:'📊 Reportes',config:'⚙️ Configuración'};
   document.getElementById('topTitle').textContent=titles[page]||page;
   if(page==='dashboard')loadDashboard();
   if(page==='citas'){fillEmpSelects();renderCitas();}
   if(page==='ventas'){fillEmpSelects();renderUltimas();calcPreview();}
   if(page==='inventario'){renderProductos();renderProveedores();}
   if(page==='empleados')renderEmpleados();
+  if(page==='finanzas')renderFinanzas();
   if(page==='reportes')cambiarTipoReporte();
   if(page==='config')loadConfigForm();
 }
 function fillEmpSelects(){
   const activos=DATA.empleados.filter(e=>e.estado==='Activo');
-  const baseOpts='<option value="">Sin asignar</option>'+activos.map(e=>`<option value="${e.nombre}">${e.nombre}</option>`).join('');
+  const baseOpts='<option value="">Sin asignar</option>'+activos.map(e=>\`<option value="\${e.nombre}">\${e.nombre}</option>\`).join('');
   ['vEmp','cEmp'].forEach(id=>{const el=document.getElementById(id);if(el){const cur=el.value;el.innerHTML=baseOpts;el.value=cur;}});
   const fEl=document.getElementById('fCitaEmp');
-  if(fEl){const cur=fEl.value;fEl.innerHTML='<option value="">Todos los empleados</option>'+activos.map(e=>`<option value="${e.nombre}">${e.nombre}</option>`).join('');fEl.value=cur;}
+  if(fEl){const cur=fEl.value;fEl.innerHTML='<option value="">Todos los empleados</option>'+activos.map(e=>\`<option value="\${e.nombre}">\${e.nombre}</option>\`).join('');fEl.value=cur;}
 }
 
 // ═══════════ WIZARD ═══════════
-function renderWizProg(){const el=document.getElementById('wizProg');el.innerHTML=Array.from({length:WIZ_TOTAL},(_,i)=>`<div class="wd ${i<wizStep?'done':i===wizStep?'active':''}"></div>`).join('');}
+function renderWizProg(){const el=document.getElementById('wizProg');el.innerHTML=Array.from({length:WIZ_TOTAL},(_,i)=>\`<div class="wd \${i<wizStep?'done':i===wizStep?'active':''}"></div>\`).join('');}
 function selWizColor(el){document.querySelectorAll('#wizSwatches .swatch').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');wizColor=el.dataset.c;document.documentElement.style.setProperty('--primary',wizColor);document.getElementById('wColorPicker').value=wizColor;}
 function selWizCustom(val){wizColor=val;document.documentElement.style.setProperty('--primary',wizColor);document.querySelectorAll('#wizSwatches .swatch').forEach(s=>s.classList.remove('sel'));}
 function addWizEmp(){const n=document.getElementById('wEmpNombre').value.trim();const p=document.getElementById('wEmpPuesto').value.trim();if(!n){toast('Ingresa el nombre','warn');return;}wizEmps.push({nombre:n,puesto:p,estado:'Activo'});document.getElementById('wEmpNombre').value='';document.getElementById('wEmpPuesto').value='';renderWizLists();}
 function addWizServ(){const n=document.getElementById('wServNombre').value.trim();const p=parseFloat(document.getElementById('wServPrecio').value||0);if(!n){toast('Ingresa el nombre','warn');return;}wizServs.push({nombre:n,precio:p,stock:99,stockMin:0,categoria:'Servicios',costo:0,proveedor:'',unidad:'servicio'});document.getElementById('wServNombre').value='';document.getElementById('wServPrecio').value='';renderWizLists();}
 function addWizCita(){const cliente=document.getElementById('wCitaCliente').value.trim();const servicio=document.getElementById('wCitaServicio').value.trim();const fecha=document.getElementById('wCitaFecha').value;const hora=document.getElementById('wCitaHora').value;if(!cliente||!fecha){toast('Ingresa cliente y fecha','warn');return;}wizCitas.push({cliente,servicio,fecha,hora,estado:'Pendiente',empleado:'',duracion:60});document.getElementById('wCitaCliente').value='';document.getElementById('wCitaServicio').value='';renderWizLists();}
 function renderWizLists(){
-  document.getElementById('wEmpList').innerHTML=wizEmps.map((e,i)=>`<div style="display:flex;justify-content:space-between;padding:6px 8px;background:var(--bg);border-radius:6px;margin-bottom:4px;font-size:13px"><span>👤 <strong>${e.nombre}</strong>${e.puesto?' · '+e.puesto:''}</span><button style="background:none;border:none;cursor:pointer;color:var(--danger)" onclick="wizEmps.splice(${i},1);renderWizLists()">✕</button></div>`).join('');
-  document.getElementById('wServList').innerHTML=wizServs.map((s,i)=>`<div style="display:flex;justify-content:space-between;padding:6px 8px;background:var(--bg);border-radius:6px;margin-bottom:4px;font-size:13px"><span>📦 <strong>${s.nombre}</strong>${s.precio>0?' · '+fmt(s.precio):''}</span><button style="background:none;border:none;cursor:pointer;color:var(--danger)" onclick="wizServs.splice(${i},1);renderWizLists()">✕</button></div>`).join('');
-  document.getElementById('wCitaList').innerHTML=wizCitas.map((c,i)=>`<div style="display:flex;justify-content:space-between;padding:6px 8px;background:var(--bg);border-radius:6px;margin-bottom:4px;font-size:13px"><span>📅 <strong>${c.cliente}</strong> · ${c.servicio||'Sin servicio'} · ${fmtDate(c.fecha)} ${c.hora}</span><button style="background:none;border:none;cursor:pointer;color:var(--danger)" onclick="wizCitas.splice(${i},1);renderWizLists()">✕</button></div>`).join('');
+  document.getElementById('wEmpList').innerHTML=wizEmps.map((e,i)=>\`<div style="display:flex;justify-content:space-between;padding:6px 8px;background:var(--bg);border-radius:6px;margin-bottom:4px;font-size:13px"><span>👤 <strong>\${e.nombre}</strong>\${e.puesto?' · '+e.puesto:''}</span><button style="background:none;border:none;cursor:pointer;color:var(--danger)" onclick="wizEmps.splice(\${i},1);renderWizLists()">✕</button></div>\`).join('');
+  document.getElementById('wServList').innerHTML=wizServs.map((s,i)=>\`<div style="display:flex;justify-content:space-between;padding:6px 8px;background:var(--bg);border-radius:6px;margin-bottom:4px;font-size:13px"><span>📦 <strong>\${s.nombre}</strong>\${s.precio>0?' · '+fmt(s.precio):''}</span><button style="background:none;border:none;cursor:pointer;color:var(--danger)" onclick="wizServs.splice(\${i},1);renderWizLists()">✕</button></div>\`).join('');
+  document.getElementById('wCitaList').innerHTML=wizCitas.map((c,i)=>\`<div style="display:flex;justify-content:space-between;padding:6px 8px;background:var(--bg);border-radius:6px;margin-bottom:4px;font-size:13px"><span>📅 <strong>\${c.cliente}</strong> · \${c.servicio||'Sin servicio'} · \${fmtDate(c.fecha)} \${c.hora}</span><button style="background:none;border:none;cursor:pointer;color:var(--danger)" onclick="wizCitas.splice(\${i},1);renderWizLists()">✕</button></div>\`).join('');
 }
 function showWizStep(){
   document.querySelectorAll('.ws').forEach((s,i)=>s.classList.toggle('active',i===wizStep));
@@ -632,21 +686,21 @@ function loadDashboard(){
   const ventasHoy=DATA.ventas.filter(v=>v.fecha===t);
   const totalHoy=ventasHoy.reduce((s,v)=>s+parseFloat(v.total||0),0);
   document.getElementById('dVentas').textContent=fmt(totalHoy);
-  document.getElementById('dVentasCnt').textContent=`${ventasHoy.length} transacción${ventasHoy.length!==1?'es':''}`;
+  document.getElementById('dVentasCnt').textContent=\`\${ventasHoy.length} transacción\${ventasHoy.length!==1?'es':''}\`;
   const citasHoy=DATA.citas.filter(c=>c.fecha===t&&c.estado!=='Cancelada');
   const pend=citasHoy.filter(c=>c.estado==='Pendiente'||c.estado==='Confirmada');
   document.getElementById('dCitas').textContent=citasHoy.length;
-  document.getElementById('dCitasSub').textContent=`${pend.length} pendiente${pend.length!==1?'s':''}`;
+  document.getElementById('dCitasSub').textContent=\`\${pend.length} pendiente\${pend.length!==1?'s':''}\`;
   const alertas=DATA.productos.filter(p=>(p.stock||0)<=(p.stockMin||CFG.stockMin));
   document.getElementById('dStock').textContent=alertas.length;
   const activos=DATA.empleados.filter(e=>e.estado==='Activo');
   document.getElementById('dEmpleados').textContent=activos.length;
   const cl=document.getElementById('dCitasList');
   const prox=DATA.citas.filter(c=>c.fecha>=t&&c.estado!=='Cancelada'&&c.estado!=='Completada').sort((a,b)=>(a.fecha+a.hora).localeCompare(b.fecha+b.hora)).slice(0,5);
-  cl.innerHTML=prox.length===0?'<div class="tm tsm" style="text-align:center;padding:12px">No hay citas próximas</div>':prox.map(c=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:600;font-size:13px">${c.cliente}</div><div class="tm tsm">${c.servicio||''}${c.empleado?' · '+c.empleado:''}</div></div><div style="text-align:right"><div style="font-weight:700;font-size:12px">${c.hora}</div><div class="tm tsm">${fmtDate(c.fecha)}</div></div></div>`).join('');
+  cl.innerHTML=prox.length===0?'<div class="tm tsm" style="text-align:center;padding:12px">No hay citas próximas</div>':prox.map(c=>\`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:600;font-size:13px">\${c.cliente}</div><div class="tm tsm">\${c.servicio||''}\${c.empleado?' · '+c.empleado:''}</div></div><div style="text-align:right"><div style="font-weight:700;font-size:12px">\${c.hora}</div><div class="tm tsm">\${fmtDate(c.fecha)}</div></div></div>\`).join('');
   const vl=document.getElementById('dVentasList');
   const ult=[...DATA.ventas].reverse().slice(0,5);
-  vl.innerHTML=ult.length===0?'<div class="tm tsm" style="text-align:center;padding:12px">Sin ventas registradas</div>':ult.map(v=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:600;font-size:13px">${v.descripcion}</div><div class="tm tsm">${v.cliente}${v.empleado?' · '+v.empleado:''}</div></div><div style="text-align:right"><div style="font-weight:700;color:var(--primary)">${fmt(v.total)}</div><div class="tm tsm">${v.hora}</div></div></div>`).join('');
+  vl.innerHTML=ult.length===0?'<div class="tm tsm" style="text-align:center;padding:12px">Sin ventas registradas</div>':ult.map(v=>\`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:600;font-size:13px">\${v.descripcion}</div><div class="tm tsm">\${v.cliente}\${v.empleado?' · '+v.empleado:''}</div></div><div style="text-align:right"><div style="font-weight:700;color:var(--primary)">\${fmt(v.total)}</div><div class="tm tsm">\${v.hora}</div></div></div>\`).join('');
 }
 
 // ═══════════ CITAS ═══════════
@@ -661,16 +715,16 @@ function renderCitas(){
   if(citas.length===0){tbody.innerHTML='';empty.classList.remove('hidden');return;}
   empty.classList.add('hidden');
   const bc=e=>({Pendiente:'b-w',Confirmada:'b-i',Completada:'b-ok',Cancelada:'b-d','No asistió':'b-s'}[e]||'b-s');
-  tbody.innerHTML=citas.map(c=>`<tr>
-    <td><div style="font-weight:600">${c.cliente}</div><div class="tm tsm">${c.telefono||''}</div></td>
-    <td>${c.servicio||'—'}</td><td>${c.empleado||'—'}</td><td>${fmtDate(c.fecha)}</td><td>${c.hora}</td>
-    <td><span class="badge ${bc(c.estado)}">${c.estado}</span></td>
+  tbody.innerHTML=citas.map(c=>\`<tr>
+    <td><div style="font-weight:600">\${c.cliente}</div><div class="tm tsm">\${c.telefono||''}</div></td>
+    <td>\${c.servicio||'—'}</td><td>\${c.empleado||'—'}</td><td>\${fmtDate(c.fecha)}</td><td>\${c.hora}</td>
+    <td><span class="badge \${bc(c.estado)}">\${c.estado}</span></td>
     <td><div class="flex g2x wrap">
-      ${c.estado!=='Completada'&&c.estado!=='Cancelada'?`<button class="btn btn-sm btn-ok" onclick="cambiarEstadoCita('${c.id}','Completada')">✅</button><button class="btn btn-sm btn-w" onclick="cambiarEstadoCita('${c.id}','Confirmada')">📋</button><button class="btn btn-sm btn-d" onclick="cambiarEstadoCita('${c.id}','Cancelada')">❌</button>`:''}
-      <button class="btn btn-sm btn-o" onclick="editarCita('${c.id}')">✏️</button>
-      <button class="btn btn-sm btn-d" onclick="eliminarCita('${c.id}')">🗑️</button>
-      ${c.estado==='Completada'?`<button class="btn btn-sm btn-p" onclick="citaAVenta('${c.id}')">💰</button>`:''}
-    </div></td></tr>`).join('');
+      \${c.estado!=='Completada'&&c.estado!=='Cancelada'?\`<button class="btn btn-sm btn-ok" onclick="cambiarEstadoCita('\${c.id}','Completada')">✅</button><button class="btn btn-sm btn-w" onclick="cambiarEstadoCita('\${c.id}','Confirmada')">📋</button><button class="btn btn-sm btn-d" onclick="cambiarEstadoCita('\${c.id}','Cancelada')">❌</button>\`:''}
+      <button class="btn btn-sm btn-o" onclick="editarCita('\${c.id}')">✏️</button>
+      <button class="btn btn-sm btn-d" onclick="eliminarCita('\${c.id}')">🗑️</button>
+      \${c.estado==='Completada'?\`<button class="btn btn-sm btn-p" onclick="citaAVenta('\${c.id}')">💰</button>\`:''}
+    </div></td></tr>\`).join('');
 }
 function limpiarFiltrosCitas(){document.getElementById('fCitaFecha').value='';document.getElementById('fCitaEstado').value='';document.getElementById('fCitaEmp').value='';renderCitas();}
 function abrirCita(){
@@ -697,7 +751,7 @@ async function guardarCita(){
   const empleado=document.getElementById('cEmp').value,duracion=parseInt(document.getElementById('cDur').value),editId=document.getElementById('cEditId').value;
   if(empleado){
     const conflicto=DATA.citas.find(c=>{if(c.id===editId||c.empleado!==empleado||c.fecha!==fecha||c.estado==='Cancelada')return false;const s1=timeToMin(c.hora),e1=s1+(c.duracion||60),s2=timeToMin(hora),e2=s2+duracion;return s2<e1&&e2>s1;});
-    if(conflicto){toast(`⚠️ Doble reserva: ${empleado} ya tiene una cita a las ${conflicto.hora}`,'warn');return;}
+    if(conflicto){toast(\`⚠️ Doble reserva: \${empleado} ya tiene una cita a las \${conflicto.hora}\`,'warn');return;}
   }
   const payload={cliente,telefono:document.getElementById('cTel').value.trim(),servicio:document.getElementById('cServicio').value.trim(),empleado:empleado||null,fecha,hora,duracion,estado:document.getElementById('cEstado').value,notas:document.getElementById('cNotas').value.trim()};
   if(editId){await sb.from('citas').update(payload).eq('id',editId);toast('✅ Cita actualizada');}
@@ -707,8 +761,8 @@ async function guardarCita(){
 async function cambiarEstadoCita(id,estado){
   await sb.from('citas').update({estado}).eq('id',id);
   await loadAllData();renderCitas();loadDashboard();
-  toast(`✅ Cita marcada como "${estado}"`);
-  if(estado==='Completada'){const c=DATA.citas.find(x=>x.id===id);showConfirm('💰 Registrar como Venta',`¿Registrar la cita de "${c.cliente}" como venta?`,()=>citaAVenta(id));}
+  toast(\`✅ Cita marcada como "\${estado}"\`);
+  if(estado==='Completada'){const c=DATA.citas.find(x=>x.id===id);showConfirm('💰 Registrar como Venta',\`¿Registrar la cita de "\${c.cliente}" como venta?\`,()=>citaAVenta(id));}
 }
 function citaAVenta(id){
   const c=DATA.citas.find(x=>x.id===id);if(!c)return;
@@ -729,11 +783,11 @@ function calcPreview(){
   const prev=document.getElementById('vPreview'); if(!prev)return;
   if(total<=0){prev.innerHTML='<div class="tm tsm" style="text-align:center;padding:20px">Ingresa el monto</div>';return;}
   const descMonto=desc>0?(tipo==='pct'?montoRaw*desc/100:desc):0;
-  prev.innerHTML=`<div style="background:var(--bg);border-radius:9px;padding:14px;border:1px solid var(--border)">
-    <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px"><span>Subtotal</span><span>${fmt(montoRaw)}</span></div>
-    ${descMonto>0?`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px"><span>🏷️ Descuento</span><span style="color:var(--danger)">-${fmt(descMonto)}</span></div>`:''}
-    <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:17px;font-weight:800;border-top:2px solid var(--border);margin-top:6px"><span>Total</span><span style="color:var(--primary)">${fmt(total)}</span></div>
-  </div>`;
+  prev.innerHTML=\`<div style="background:var(--bg);border-radius:9px;padding:14px;border:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px"><span>Subtotal</span><span>\${fmt(montoRaw)}</span></div>
+    \${descMonto>0?\`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px"><span>🏷️ Descuento</span><span style="color:var(--danger)">-\${fmt(descMonto)}</span></div>\`:''}
+    <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:17px;font-weight:800;border-top:2px solid var(--border);margin-top:6px"><span>Total</span><span style="color:var(--primary)">\${fmt(total)}</span></div>
+  </div>\`;
 }
 async function registrarVenta(){
   const descripcion=document.getElementById('vDesc').value.trim(),montoRaw=parseFloat(document.getElementById('vMonto').value||0);
@@ -752,13 +806,13 @@ async function registrarVenta(){
   await loadAllData();
   ['vCliente','vDesc','vMonto','vDesc2','vNotas'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('vEmp').value=''; calcPreview();
-  document.getElementById('mVentaOkBody').innerHTML=`<div class="alert a-ok mb3">✅ Venta registrada</div><div style="font-size:13px;margin-bottom:10px"><strong>${descripcion}</strong> · ${payload.cliente}${empleado?' · '+empleado:''}</div><div style="background:var(--bg);border-radius:9px;padding:14px;border:1px solid var(--border)"><div style="display:flex;justify-content:space-between;font-size:17px;font-weight:800"><span>Total cobrado</span><span style="color:var(--primary)">${fmt(total)}</span></div></div>`;
+  document.getElementById('mVentaOkBody').innerHTML=\`<div class="alert a-ok mb3">✅ Venta registrada</div><div style="font-size:13px;margin-bottom:10px"><strong>\${descripcion}</strong> · \${payload.cliente}\${empleado?' · '+empleado:''}</div><div style="background:var(--bg);border-radius:9px;padding:14px;border:1px solid var(--border)"><div style="display:flex;justify-content:space-between;font-size:17px;font-weight:800"><span>Total cobrado</span><span style="color:var(--primary)">\${fmt(total)}</span></div></div>\`;
   openModal('mVentaOk'); renderUltimas(); loadDashboard();
 }
 function renderUltimas(){
   const el=document.getElementById('vUltimas'); if(!el)return;
   const u=[...DATA.ventas].reverse().slice(0,6);
-  el.innerHTML=u.length===0?'<div class="tm tsm" style="text-align:center;padding:16px">Sin ventas</div>':u.map(v=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px"><div><div style="font-weight:600">${v.descripcion}</div><div class="tm">${v.cliente}${v.empleado?' · '+v.empleado:''}</div></div><div style="text-align:right"><div style="font-weight:700;color:var(--primary)">${fmt(v.total)}</div><div class="tm">${v.hora}</div></div></div>`).join('');
+  el.innerHTML=u.length===0?'<div class="tm tsm" style="text-align:center;padding:16px">Sin ventas</div>':u.map(v=>\`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px"><div><div style="font-weight:600">\${v.descripcion}</div><div class="tm">\${v.cliente}\${v.empleado?' · '+v.empleado:''}</div></div><div style="text-align:right"><div style="font-weight:700;color:var(--primary)">\${fmt(v.total)}</div><div class="tm">\${v.hora}</div></div></div>\`).join('');
 }
 
 // ═══════════ INVENTARIO ═══════════
@@ -771,15 +825,15 @@ function renderProductos(){
   if(sf==='bajo')prods=prods.filter(p=>(p.stock||0)<=(p.stockMin||CFG.stockMin));
   const cats=[...new Set(DATA.productos.map(p=>p.categoria).filter(Boolean))];
   const catSel=document.getElementById('fCat');
-  if(catSel){const cur=catSel.value;catSel.innerHTML='<option value="">Todas las categorías</option>'+cats.map(c=>`<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');}
+  if(catSel){const cur=catSel.value;catSel.innerHTML='<option value="">Todas las categorías</option>'+cats.map(c=>\`<option value="\${c}" \${c===cur?'selected':''}>\${c}</option>\`).join('');}
   const tbody=document.getElementById('tProd'),empty=document.getElementById('emptyProd');
   if(prods.length===0){tbody.innerHTML='';empty.classList.remove('hidden');return;}
   empty.classList.add('hidden');
   tbody.innerHTML=prods.map(p=>{const min=p.stockMin||CFG.stockMin,bajo=(p.stock||0)<=min;
-    return `<tr><td><div style="font-weight:600">${p.nombre}</div><div class="tm tsm">${p.unidad||''}</div></td><td>${p.categoria||'—'}</td><td>${fmt(p.precio||0)}</td>
-    <td><span style="font-weight:700;color:${bajo?'var(--danger)':'var(--success)'}">${p.stock||0}</span>${bajo?' ⚠️':''}<div class="tm tsm">mín: ${min}</div></td>
-    <td><span class="badge ${bajo?'b-d':'b-ok'}">${bajo?'⚠️ Bajo':'✅ OK'}</span></td>
-    <td><div class="flex g2x"><button class="btn btn-sm btn-o" onclick="editarProducto('${p.id}')">✏️</button><button class="btn btn-sm btn-d" onclick="eliminarProducto('${p.id}')">🗑️</button></div></td></tr>`;
+    return \`<tr><td><div style="font-weight:600">\${p.nombre}</div><div class="tm tsm">\${p.unidad||''}</div></td><td>\${p.categoria||'—'}</td><td>\${fmt(p.precio||0)}</td>
+    <td><span style="font-weight:700;color:\${bajo?'var(--danger)':'var(--success)'}">\${p.stock||0}</span>\${bajo?' ⚠️':''}<div class="tm tsm">mín: \${min}</div></td>
+    <td><span class="badge \${bajo?'b-d':'b-ok'}">\${bajo?'⚠️ Bajo':'✅ OK'}</span></td>
+    <td><div class="flex g2x"><button class="btn btn-sm btn-o" onclick="editarProducto('\${p.id}')">✏️</button><button class="btn btn-sm btn-d" onclick="eliminarProducto('\${p.id}')">🗑️</button></div></td></tr>\`;
   }).join('');
 }
 function abrirProd(){document.getElementById('mProdTitle').textContent='📦 Nuevo Producto/Servicio';['pNombre','pCat','pPrecio','pCosto','pProv','pUnidad'].forEach(id=>document.getElementById(id).value='');document.getElementById('pStock').value='';document.getElementById('pStockMin').value=CFG.stockMin;document.getElementById('pEditId').value='';openModal('mProd');}
@@ -797,7 +851,7 @@ function renderProveedores(){
   const tbody=document.getElementById('tProv'),empty=document.getElementById('emptyProv');
   if(DATA.proveedores.length===0){tbody.innerHTML='';empty.classList.remove('hidden');return;}
   empty.classList.add('hidden');
-  tbody.innerHTML=DATA.proveedores.map(p=>`<tr><td style="font-weight:600">${p.nombre}</td><td>${p.contacto||'—'}</td><td>${p.productos||'—'}</td><td>${p.entrega||'—'}</td><td><div class="flex g2x"><button class="btn btn-sm btn-o" onclick="editarProveedor('${p.id}')">✏️</button><button class="btn btn-sm btn-d" onclick="eliminarProveedor('${p.id}')">🗑️</button></div></td></tr>`).join('');
+  tbody.innerHTML=DATA.proveedores.map(p=>\`<tr><td style="font-weight:600">\${p.nombre}</td><td>\${p.contacto||'—'}</td><td>\${p.productos||'—'}</td><td>\${p.entrega||'—'}</td><td><div class="flex g2x"><button class="btn btn-sm btn-o" onclick="editarProveedor('\${p.id}')">✏️</button><button class="btn btn-sm btn-d" onclick="eliminarProveedor('\${p.id}')">🗑️</button></div></td></tr>\`).join('');
 }
 function abrirProv(){document.getElementById('mProvTitle').textContent='🏭 Nuevo Proveedor';['pvNombre','pvContacto','pvProductos','pvEntrega'].forEach(id=>document.getElementById(id).value='');document.getElementById('pvEditId').value='';openModal('mProv');}
 function editarProveedor(id){const p=DATA.proveedores.find(x=>x.id===id);if(!p)return;document.getElementById('mProvTitle').textContent='✏️ Editar Proveedor';document.getElementById('pvNombre').value=p.nombre;document.getElementById('pvContacto').value=p.contacto||'';document.getElementById('pvProductos').value=p.productos||'';document.getElementById('pvEntrega').value=p.entrega||'';document.getElementById('pvEditId').value=id;openModal('mProv');}
@@ -815,13 +869,13 @@ function eliminarProveedor(id){showConfirm('🗑️ Eliminar Proveedor','¿Confi
 function renderEmpleados(){
   const cards=document.getElementById('empCards'),tbody=document.getElementById('tDesempeno');
   if(DATA.empleados.length===0){cards.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="ei">👥</div><div class="em">No hay empleados</div></div>';tbody.innerHTML='';return;}
-  cards.innerHTML=DATA.empleados.map(e=>`<div class="card"><div style="font-size:34px;text-align:center;margin-bottom:6px">👤</div><div style="font-weight:700;text-align:center;font-size:14px">${e.nombre}</div><div class="tm tsm" style="text-align:center;margin-bottom:8px">${e.puesto||''}</div><span class="badge ${e.estado==='Activo'?'b-ok':'b-s'}" style="display:block;text-align:center">${e.estado||'Activo'}</span><div style="margin-top:10px;font-size:12px;color:var(--muted)"><div>Ventas generadas: <strong>${fmt(e.ventasGeneradas||0)}</strong></div>${e.fechaIngreso?`<div>Ingreso: ${fmtDate(e.fechaIngreso)}</div>`:''}${e.tel?`<div>Tel: ${e.tel}</div>`:''}</div><div class="flex g2x mt3" style="justify-content:center"><button class="btn btn-sm btn-o" onclick="editarEmpleado('${e.id}')">✏️ Editar</button><button class="btn btn-sm btn-d" onclick="eliminarEmpleado('${e.id}')">🗑️</button></div></div>`).join('');
+  cards.innerHTML=DATA.empleados.map(e=>\`<div class="card"><div style="font-size:34px;text-align:center;margin-bottom:6px">👤</div><div style="font-weight:700;text-align:center;font-size:14px">\${e.nombre}</div><div class="tm tsm" style="text-align:center;margin-bottom:8px">\${e.puesto||''}</div><span class="badge \${e.estado==='Activo'?'b-ok':'b-s'}" style="display:block;text-align:center">\${e.estado||'Activo'}</span><div style="margin-top:10px;font-size:12px;color:var(--muted)"><div>Ventas generadas: <strong>\${fmt(e.ventasGeneradas||0)}</strong></div>\${e.fechaIngreso?\`<div>Ingreso: \${fmtDate(e.fechaIngreso)}</div>\`:''}\${e.tel?\`<div>Tel: \${e.tel}</div>\`:''}</div><div class="flex g2x mt3" style="justify-content:center"><button class="btn btn-sm btn-o" onclick="editarEmpleado('\${e.id}')">✏️ Editar</button><button class="btn btn-sm btn-d" onclick="eliminarEmpleado('\${e.id}')">🗑️</button></div></div>\`).join('');
   const mesActual=today().substring(0,7);
   tbody.innerHTML=DATA.empleados.map(e=>{
     const ventasMes=DATA.ventas.filter(v=>v.empleado===e.nombre&&v.fecha.startsWith(mesActual));
     const totalMes=ventasMes.reduce((s,v)=>s+parseFloat(v.total||0),0);
     const citasMes=DATA.citas.filter(c=>c.empleado===e.nombre&&c.estado==='Completada'&&c.fecha.startsWith(mesActual)).length;
-    return `<tr><td style="font-weight:600">${e.nombre}</td><td>${e.puesto||'—'}</td><td style="color:var(--primary);font-weight:700">${fmt(totalMes)}</td><td>${citasMes}</td></tr>`;
+    return \`<tr><td style="font-weight:600">\${e.nombre}</td><td>\${e.puesto||'—'}</td><td style="color:var(--primary);font-weight:700">\${fmt(totalMes)}</td><td>\${citasMes}</td></tr>\`;
   }).join('');
 }
 function abrirEmp(){document.getElementById('mEmpTitle').textContent='👤 Nuevo Empleado';['eNombre','ePuesto','eTel','eFecha'].forEach(id=>document.getElementById(id).value='');document.getElementById('eEstado').value='Activo';document.getElementById('eEditId').value='';openModal('mEmp');}
@@ -834,7 +888,151 @@ async function guardarEmpleado(){
   else{await sb.from('empleados').insert([{...payload,user_id:CURRENT_USER.id,ventas_generadas:0}]);toast('✅ Empleado registrado');}
   await loadAllData();closeModal('mEmp');renderEmpleados();fillEmpSelects();
 }
-function eliminarEmpleado(id){const e=DATA.empleados.find(x=>x.id===id);showConfirm('🗑️ Eliminar Empleado',`¿Confirmas eliminar a "${e?.nombre}"?`,async()=>{await sb.from('empleados').delete().eq('id',id);await loadAllData();renderEmpleados();fillEmpSelects();toast('🗑️ Empleado eliminado','warn');});}
+function eliminarEmpleado(id){const e=DATA.empleados.find(x=>x.id===id);showConfirm('🗑️ Eliminar Empleado',\`¿Confirmas eliminar a "\${e?.nombre}"?\`,async()=>{await sb.from('empleados').delete().eq('id',id);await loadAllData();renderEmpleados();fillEmpSelects();toast('🗑️ Empleado eliminado','warn');});}
+
+// ═══════════ FINANZAS (metas por categoría) ═══════════
+const FIN_CATS = [
+  {key:'Ingresos', label:'💰 Ingresos', color:'#28a745'},
+  {key:'Facturas', label:'🧾 Facturas', color:'#0d6efd'},
+  {key:'Gastos', label:'💸 Gastos', color:'#fd7e14'},
+  {key:'Ahorros', label:'🏦 Ahorros', color:'#20c997'},
+  {key:'Creditos', label:'💳 Créditos', color:'#dc3545'},
+  {key:'Inversiones', label:'📈 Inversiones', color:'#6f42c1'}
+];
+
+function finMesActual(){ return today().substring(0,7); }
+
+function fillFinMesSelect(){
+  const sel=document.getElementById('finMes');
+  if(!sel)return;
+  const cur=sel.value;
+  const mesesSet=new Set(DATA.metas.map(m=>m.mes).filter(Boolean));
+  mesesSet.add(finMesActual());
+  const meses=[...mesesSet].sort().reverse();
+  sel.innerHTML=meses.map(m=>{
+    const [y,mm]=m.split('-');
+    const nombreMes=new Date(y+'-'+mm+'-01T00:00:00').toLocaleDateString('es',{month:'long',year:'numeric'});
+    return \`<option value="\${m}">\${nombreMes}</option>\`;
+  }).join('');
+  sel.value = cur && meses.includes(cur) ? cur : finMesActual();
+}
+
+function renderFinanzas(){
+  fillFinMesSelect();
+  const mesSel=document.getElementById('finMes').value || finMesActual();
+  const metasMes=DATA.metas.filter(m=>m.mes===mesSel);
+
+  // Totales reales del mes (desde ventas ya registradas, para Ingresos)
+  const ventasMes=DATA.ventas.filter(v=>v.fecha.startsWith(mesSel));
+  const ingresosVentas=ventasMes.reduce((s,v)=>s+parseFloat(v.total||0),0);
+
+  const metaIngresos=metasMes.filter(m=>m.categoria==='Ingresos');
+  const metaGastosCats=metasMes.filter(m=>m.categoria==='Gastos'||m.categoria==='Facturas');
+
+  const totalIngresosReal = metaIngresos.length
+    ? metaIngresos.reduce((s,m)=>s+parseFloat(m.real||0),0) + ingresosVentas
+    : ingresosVentas;
+  const totalIngresosObjetivo = metaIngresos.reduce((s,m)=>s+parseFloat(m.objetivo||0),0);
+  const totalGastosReal = metaGastosCats.reduce((s,m)=>s+parseFloat(m.real||0),0);
+  const totalGastosObjetivo = metaGastosCats.reduce((s,m)=>s+parseFloat(m.objetivo||0),0);
+
+  document.getElementById('finIngresosReal').textContent = fmt(totalIngresosReal);
+  document.getElementById('finIngresosMeta').textContent = 'meta: ' + (totalIngresosObjetivo>0?fmt(totalIngresosObjetivo):'—');
+  document.getElementById('finGastosReal').textContent = fmt(totalGastosReal);
+  document.getElementById('finGastosMeta').textContent = 'meta: ' + (totalGastosObjetivo>0?fmt(totalGastosObjetivo):'—');
+  document.getElementById('finBalance').textContent = fmt(totalIngresosReal - totalGastosReal);
+
+  const cumplidas = metasMes.filter(m=>parseFloat(m.real||0) >= parseFloat(m.objetivo||0) && parseFloat(m.objetivo||0) > 0).length;
+  document.getElementById('finCumplidas').textContent = \`\${cumplidas}/\${metasMes.length}\`;
+
+  const cont=document.getElementById('finCategorias');
+  cont.innerHTML = FIN_CATS.map(cat=>{
+    const metas = metasMes.filter(m=>m.categoria===cat.key);
+    const rows = metas.length===0
+      ? '<div class="empty" style="padding:20px"><div class="es">Sin metas en esta categoría para este mes</div></div>'
+      : metas.map(m=>{
+          const obj=parseFloat(m.objetivo||0), real=parseFloat(m.real||0);
+          const pct = obj>0 ? Math.min(100, Math.round((real/obj)*100)) : 0;
+          let estado, badgeCls, barColor;
+          if(obj<=0){ estado='⚪ Sin objetivo'; badgeCls='b-s'; barColor='#adb5bd'; }
+          else if(real>=obj){ estado='✅ Cumplida'; badgeCls='b-ok'; barColor='var(--success)'; }
+          else if(pct>=60){ estado='🟡 En progreso'; badgeCls='b-w'; barColor='var(--warning)'; }
+          else { estado='🔴 Atrasada'; badgeCls='b-d'; barColor='var(--danger)'; }
+          return \`<div class="goal-row">
+            <div class="goal-info">
+              <div class="flex jb ic">
+                <div class="goal-name">\${m.nombre}</div>
+                <span class="badge \${badgeCls}">\${estado}</span>
+              </div>
+              <div class="goal-nums">Real: \${fmt(real)} &nbsp;/&nbsp; Meta: \${fmt(obj)} \${obj>0?'· '+pct+'%':''}</div>
+              <div class="goal-bar-wrap"><div class="goal-bar" style="width:\${pct}%;background:\${barColor}"></div></div>
+              \${m.notas?\`<div class="tm tsm mt2">\${m.notas}</div>\`:''}
+            </div>
+            <div class="goal-actions">
+              <button class="btn btn-sm btn-o" onclick="editarMeta('\${m.id}')">✏️</button>
+              <button class="btn btn-sm btn-d" onclick="eliminarMeta('\${m.id}')">🗑️</button>
+            </div>
+          </div>\`;
+        }).join('');
+    return \`<div class="fin-cat">
+      <div class="fin-cat-h" style="background:\${cat.color}"><span>\${cat.label}</span><span class="tsm" style="opacity:.85">\${metas.length} meta\${metas.length!==1?'s':''}</span></div>
+      <div class="fin-cat-b">\${rows}</div>
+    </div>\`;
+  }).join('');
+}
+
+function abrirMeta(){
+  document.getElementById('mMetaTitle').textContent='🎯 Nueva Meta';
+  document.getElementById('metaCategoria').value='Ingresos';
+  document.getElementById('metaNombre').value='';
+  document.getElementById('metaObjetivo').value='';
+  document.getElementById('metaReal').value='';
+  document.getElementById('metaNotas').value='';
+  document.getElementById('metaMes').value = document.getElementById('finMes')?.value || finMesActual();
+  document.getElementById('metaEditId').value='';
+  openModal('mMeta');
+}
+function editarMeta(id){
+  const m=DATA.metas.find(x=>x.id===id); if(!m)return;
+  document.getElementById('mMetaTitle').textContent='✏️ Editar Meta';
+  document.getElementById('metaCategoria').value=m.categoria;
+  document.getElementById('metaNombre').value=m.nombre;
+  document.getElementById('metaObjetivo').value=m.objetivo||'';
+  document.getElementById('metaReal').value=m.real||'';
+  document.getElementById('metaMes').value=m.mes;
+  document.getElementById('metaNotas').value=m.notas||'';
+  document.getElementById('metaEditId').value=id;
+  openModal('mMeta');
+}
+async function guardarMeta(){
+  const nombre=document.getElementById('metaNombre').value.trim();
+  const objetivo=parseFloat(document.getElementById('metaObjetivo').value||0);
+  const mes=document.getElementById('metaMes').value || finMesActual();
+  if(!nombre){toast('⚠️ Ingresa el nombre de la meta','err');return;}
+  if(objetivo<=0){toast('⚠️ Ingresa un monto objetivo mayor a 0','err');return;}
+  const editId=document.getElementById('metaEditId').value;
+  const payload={
+    categoria: document.getElementById('metaCategoria').value,
+    nombre,
+    monto_objetivo: objetivo,
+    monto_real: parseFloat(document.getElementById('metaReal').value||0),
+    mes,
+    notas: document.getElementById('metaNotas').value.trim()
+  };
+  if(editId){ await sb.from('metas_financieras').update(payload).eq('id',editId); toast('✅ Meta actualizada'); }
+  else{ await sb.from('metas_financieras').insert([{...payload, user_id:CURRENT_USER.id}]); toast('✅ Meta creada'); }
+  await loadAllData();
+  closeModal('mMeta');
+  renderFinanzas();
+}
+function eliminarMeta(id){
+  showConfirm('🗑️ Eliminar Meta','¿Confirmas eliminar esta meta financiera? No se puede deshacer.',async()=>{
+    await sb.from('metas_financieras').delete().eq('id',id);
+    await loadAllData();
+    renderFinanzas();
+    toast('🗑️ Meta eliminada','warn');
+  });
+}
 
 // ═══════════ REPORTES ═══════════
 function cambiarTipoReporte(){
@@ -843,7 +1041,7 @@ function cambiarTipoReporte(){
   if(!rDesde)return;
   if(tipo==='diario'){rDesde.value=t;rHasta.value=t;rHastaLbl.classList.add('hidden');rHasta.classList.add('hidden');}
   else if(tipo==='semanal'){const d=new Date();const day=d.getDay();const lunes=new Date(d);lunes.setDate(d.getDate()-day+1);const domingo=new Date(lunes);domingo.setDate(lunes.getDate()+6);rDesde.value=lunes.toISOString().split('T')[0];rHasta.value=domingo.toISOString().split('T')[0];rHastaLbl.classList.remove('hidden');rHasta.classList.remove('hidden');}
-  else if(tipo==='mensual'){const d=new Date();rDesde.value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;const ultimo=new Date(d.getFullYear(),d.getMonth()+1,0);rHasta.value=ultimo.toISOString().split('T')[0];rHastaLbl.classList.remove('hidden');rHasta.classList.remove('hidden');}
+  else if(tipo==='mensual'){const d=new Date();rDesde.value=\`\${d.getFullYear()}-\${String(d.getMonth()+1).padStart(2,'0')}-01\`;const ultimo=new Date(d.getFullYear(),d.getMonth()+1,0);rHasta.value=ultimo.toISOString().split('T')[0];rHastaLbl.classList.remove('hidden');rHasta.classList.remove('hidden');}
   else{rDesde.value=t;rHasta.value=t;rHastaLbl.classList.remove('hidden');rHasta.classList.remove('hidden');}
 }
 function generarReporte(){
@@ -856,18 +1054,18 @@ function generarReporte(){
   const ventasPorEmp={}; ventasPeriodo.forEach(v=>{if(v.empleado)ventasPorEmp[v.empleado]=(ventasPorEmp[v.empleado]||0)+parseFloat(v.total||0);});
   const tipo=document.getElementById('rTipo').value;
   const periodoLabel={diario:'Diario',semanal:'Semanal',mensual:'Mensual',personalizado:'Personalizado'}[tipo];
-  document.getElementById('rOutput').innerHTML=`<div class="card mb3">
-    <div style="font-size:16px;font-weight:800;margin-bottom:14px">📊 Reporte ${periodoLabel} — ${fmtDate(desde)}${desde!==hasta?' al '+fmtDate(hasta):''}</div>
+  document.getElementById('rOutput').innerHTML=\`<div class="card mb3">
+    <div style="font-size:16px;font-weight:800;margin-bottom:14px">📊 Reporte \${periodoLabel} — \${fmtDate(desde)}\${desde!==hasta?' al '+fmtDate(hasta):''}</div>
     <div class="g4 mb4">
-      <div class="stat"><div class="si" style="background:rgba(214,51,132,.1)">💰</div><div><div class="sl">Total Ventas</div><div class="sv" style="color:var(--primary)">${fmt(totalV)}</div><div class="ss">${ventasPeriodo.length} transacciones</div></div></div>
-      <div class="stat"><div class="si" style="background:rgba(40,167,69,.1)">📅</div><div><div class="sl">Citas</div><div class="sv">${citasPeriodo.length}</div><div class="ss">${citasPeriodo.filter(c=>c.estado==='Completada').length} completadas</div></div></div>
-      <div class="stat"><div class="si" style="background:rgba(220,53,69,.1)">❌</div><div><div class="sl">Canceladas</div><div class="sv">${citasPeriodo.filter(c=>c.estado==='Cancelada').length}</div><div class="ss">citas</div></div></div>
-      <div class="stat"><div class="si" style="background:rgba(255,193,7,.1)">📦</div><div><div class="sl">Stock Bajo</div><div class="sv">${alertasStock.length}</div><div class="ss">productos</div></div></div>
+      <div class="stat"><div class="si" style="background:rgba(214,51,132,.1)">💰</div><div><div class="sl">Total Ventas</div><div class="sv" style="color:var(--primary)">\${fmt(totalV)}</div><div class="ss">\${ventasPeriodo.length} transacciones</div></div></div>
+      <div class="stat"><div class="si" style="background:rgba(40,167,69,.1)">📅</div><div><div class="sl">Citas</div><div class="sv">\${citasPeriodo.length}</div><div class="ss">\${citasPeriodo.filter(c=>c.estado==='Completada').length} completadas</div></div></div>
+      <div class="stat"><div class="si" style="background:rgba(220,53,69,.1)">❌</div><div><div class="sl">Canceladas</div><div class="sv">\${citasPeriodo.filter(c=>c.estado==='Cancelada').length}</div><div class="ss">citas</div></div></div>
+      <div class="stat"><div class="si" style="background:rgba(255,193,7,.1)">📦</div><div><div class="sl">Stock Bajo</div><div class="sv">\${alertasStock.length}</div><div class="ss">productos</div></div></div>
     </div>
-    ${Object.keys(ventasPorEmp).length>0?`<div class="ct mt3 mb2">💰 Ventas por Empleado</div><div class="tw mb3"><table><thead><tr><th>Empleado</th><th>Ventas del Periodo</th></tr></thead><tbody>${Object.entries(ventasPorEmp).map(([n,m])=>`<tr><td>${n}</td><td style="font-weight:700;color:var(--primary)">${fmt(m)}</td></tr>`).join('')}</tbody></table></div>`:''}
-    ${alertasStock.length>0?`<div class="ct mt3 mb2">⚠️ Productos con Stock Bajo</div><div class="tw mb3"><table><thead><tr><th>Producto</th><th>Stock</th><th>Mínimo</th><th>Proveedor</th></tr></thead><tbody>${alertasStock.map(p=>`<tr><td>${p.nombre}</td><td><span class="badge b-w">${p.stock||0}</span></td><td>${p.stockMin||CFG.stockMin}</td><td>${p.proveedor||'—'}</td></tr>`).join('')}</tbody></table></div>`:'<div class="alert a-ok mt3">✅ Todo el inventario en niveles normales</div>'}
-    ${ventasPeriodo.length>0?`<div class="ct mt3 mb2">🧾 Detalle de Ventas</div><div class="tw"><table><thead><tr><th>Fecha</th><th>Descripción</th><th>Cliente</th><th>Empleado</th><th>Total</th><th>Pago</th></tr></thead><tbody>${[...ventasPeriodo].reverse().map(v=>`<tr><td class="tsm">${fmtDate(v.fecha)} ${v.hora}</td><td>${v.descripcion}</td><td>${v.cliente}</td><td>${v.empleado||'—'}</td><td style="font-weight:700;color:var(--primary)">${fmt(v.total)}</td><td><span class="badge b-s">${v.metodoPago}</span></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty"><div class="ei">📊</div><div class="em">No hay ventas en este periodo</div></div>'}
-  </div>`;
+    \${Object.keys(ventasPorEmp).length>0?\`<div class="ct mt3 mb2">💰 Ventas por Empleado</div><div class="tw mb3"><table><thead><tr><th>Empleado</th><th>Ventas del Periodo</th></tr></thead><tbody>\${Object.entries(ventasPorEmp).map(([n,m])=>\`<tr><td>\${n}</td><td style="font-weight:700;color:var(--primary)">\${fmt(m)}</td></tr>\`).join('')}</tbody></table></div>\`:''}
+    \${alertasStock.length>0?\`<div class="ct mt3 mb2">⚠️ Productos con Stock Bajo</div><div class="tw mb3"><table><thead><tr><th>Producto</th><th>Stock</th><th>Mínimo</th><th>Proveedor</th></tr></thead><tbody>\${alertasStock.map(p=>\`<tr><td>\${p.nombre}</td><td><span class="badge b-w">\${p.stock||0}</span></td><td>\${p.stockMin||CFG.stockMin}</td><td>\${p.proveedor||'—'}</td></tr>\`).join('')}</tbody></table></div>\`:'<div class="alert a-ok mt3">✅ Todo el inventario en niveles normales</div>'}
+    \${ventasPeriodo.length>0?\`<div class="ct mt3 mb2">🧾 Detalle de Ventas</div><div class="tw"><table><thead><tr><th>Fecha</th><th>Descripción</th><th>Cliente</th><th>Empleado</th><th>Total</th><th>Pago</th></tr></thead><tbody>\${[...ventasPeriodo].reverse().map(v=>\`<tr><td class="tsm">\${fmtDate(v.fecha)} \${v.hora}</td><td>\${v.descripcion}</td><td>\${v.cliente}</td><td>\${v.empleado||'—'}</td><td style="font-weight:700;color:var(--primary)">\${fmt(v.total)}</td><td><span class="badge b-s">\${v.metodoPago}</span></td></tr>\`).join('')}</tbody></table></div>\`:'<div class="empty"><div class="ei">📊</div><div class="em">No hay ventas en este periodo</div></div>'}
+  </div>\`;
 }
 function copiarReporte(){const el=document.getElementById('rOutput');if(!el||!el.textContent.trim()){toast('Genera un reporte primero','warn');return;}navigator.clipboard.writeText(el.innerText).then(()=>toast('📋 Reporte copiado','info')).catch(()=>toast('No se pudo copiar','err'));}
 
@@ -890,17 +1088,17 @@ async function guardarConfig(){
   await saveCFG(); applyConfig(); toast('✅ Configuración guardada');
 }
 function resetearDatos(){
-  showConfirm('🗑️ Resetear TODOS los datos','¿Estás seguro? Esto eliminará TODAS las ventas, citas, empleados e inventario. No se puede deshacer.',async()=>{
-    await Promise.all(['citas','ventas','empleados','productos','proveedores'].map(t=>sb.from(t).delete().eq('user_id',CURRENT_USER.id)));
+  showConfirm('🗑️ Resetear TODOS los datos','¿Estás seguro? Esto eliminará TODAS las ventas, citas, empleados, inventario y metas financieras. No se puede deshacer.',async()=>{
+    await Promise.all(['citas','ventas','empleados','productos','proveedores','metas_financieras'].map(t=>sb.from(t).delete().eq('user_id',CURRENT_USER.id)));
     await loadAllData();
     toast('🗑️ Todos los datos eliminados','warn');
-    loadDashboard();renderCitas();renderEmpleados();renderProductos();renderProveedores();
+    loadDashboard();renderCitas();renderEmpleados();renderProductos();renderProveedores();renderFinanzas();
   });
 }
 
 // ═══════════ LOAD APP / INIT ═══════════
 function loadApp(){
-  fillEmpSelects();loadDashboard();renderCitas();renderEmpleados();renderProductos();renderProveedores();renderUltimas();cambiarTipoReporte();
+  fillEmpSelects();loadDashboard();renderCitas();renderEmpleados();renderProductos();renderProveedores();renderUltimas();cambiarTipoReporte();fillFinMesSelect();
   const topDate=document.getElementById('topDate');
   if(topDate)topDate.textContent=new Date().toLocaleDateString('es',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 }
